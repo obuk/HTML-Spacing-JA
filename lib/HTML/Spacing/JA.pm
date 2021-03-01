@@ -210,7 +210,7 @@ sub arrange_spacing {
         $w  = _cc('W');
         $j  = $j  ? qr/[$j\p{InJapanese}]/ : qr/\p{InJapanese}/;
         $n  = $n  ? qr/[$n\p{InNumbers}]/  : qr/\p{InNumbers}/;
-        $w  = $w  ? qr/[$w\p{InWesternS}]/ : qr/\p{InWesternS}/;
+        $w  = $w  ? qr/[$w\p{InWestern}]/  : qr/\p{InWestern}/;
 
         if (!$FORMATTED) {
 
@@ -249,6 +249,10 @@ sub arrange_spacing {
             s/(\p{InStarting})\p{InSpaces}+/$1/g;
 
           }
+
+          s/\p{InSpace2}+(\p{InNeutral})/$1/g;
+          s/(\p{InNeutral})\p{InSpace2}+/$1/g;
+
         }
 
         # arrange spacing from the previous element.
@@ -558,21 +562,6 @@ sub IsEnSpace   { sprintf "%X", ord _enspace }
 sub IsWordSpace { sprintf "%X", ord _wordspace }
 sub IsThinSpace { sprintf "%X", ord _thinspace }
 
-sub InWesternS {
-  return <<END;
-+InWestern
--InWesternQuote
-END
-}
-
-sub InWesternQuote {
-  (my $u = <<END) =~ s/[#;].*//gm; $u;
-0022;	"
-0027;	'
-0060;	`
-END
-}
-
 sub InWestern {
   return <<END;
 +InWesternCharacters
@@ -581,7 +570,7 @@ END
 }
 
 sub InNumbers {
-  (my $u = <<END) =~ s/[#;].*//gm; $u;
+  return <<END;
 +InGroupedNumerals
 -utf8::InSpace
 END
@@ -595,6 +584,15 @@ sub InPunctuations {
 +InMiddleDots
 +utf8::InP
 +utf8::InS
+END
+}
+
+sub InNeutral {
+  return <<END;
++InPunctuations
+-InStarting
+-InEnding
+-InMiddleDots
 END
 }
 
@@ -679,12 +677,16 @@ sub InJapaneseCharacters {
 3400\t4DBF; CJK Unified Ideographs Extension A
 4DC0\t4DFF; Yijing Hexagram Symbols
 4E00\t9FFF; CJK Unified Ideographs
+F900\tFAFF; CJK Compatibility Ideographs
+FE00\tFE0F; Variation Selectors
+FF00\tFFEF; Halfwidth and Fullwidth Forms
 20000\t2A6DF; CJK Unified Ideographs Extension B
 2A700\t2B73F; CJK Unified Ideographs Extension C
 2B740\t2B81F; CJK Unified Ideographs Extension D
 2B820\t2CEAF; CJK Unified Ideographs Extension E
 2CEB0\t2EBEF; CJK Unified Ideographs Extension F
 2F800\t2FA1F; CJK Compatibility Ideographs Supplement
+E0100\tE01EF; Variation Selectors Supplement
 END
 }
 
@@ -1103,7 +1105,7 @@ HTMLのテキスト(preやcodeを除く)のスペースを補正します。L<< 
 括弧と句読点の配置は、L<< 日本語組版処理の要件
 |https://www.w3.org/TR/jlreq/ >>の 3.1.2 句読点や括弧類などの基本的な
 配置方法、3.1.4 始め括弧類〜が連続する場合の配置方法に合わせました。例
-として同文書の図69を示します。こうしたものが読みやすくなります。
+として同文書の図69を示します。
 
 =over
 
@@ -1328,6 +1330,11 @@ L</InMiddleDots>のうち日本語のフォントに含まれるもの。
 
 L</InMiddleDots>のうち欧文のフォントに含まれるもの。
 
+=item InNeutral
+
+欧文の文字で、前後にスペースを追加しないもの。(入力されたスペースは除
+きます。)
+
 =item InNumbers
 
 数の類です。L</InGroupedNumerals>からスペースを除きました。
@@ -1383,11 +1390,6 @@ L</InNumbers>を含みます。
 L<cl-27|https://www.w3.org/TR/jlreq/#cl-27>です。たとえば、ここに
 C<AC00\tD7AF> (Hangul Syllables) を追加し、和文の中に안녕하세요と書くと
 前後にスペースが付きます。
-
-=item InWesternS
-
-欧文の文字で、日本語と隣合うとき、間にスペースを要するもの。
-いまのところ L</InWestern> から C<'> C<"> C<`> を除いたもの。
 
 =item IsEmSpace
 

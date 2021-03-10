@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use feature 'say';
 
-our $VERSION = "0.01";
+our $VERSION = "0.02";
 
 =encoding ja.UTF-8
 
@@ -20,8 +20,8 @@ use base qw(Class::Accessor);
 __PACKAGE__->mk_accessors(qw( output_tag lang_spacing number_spacing
                               punct_spacing uri_ascii re_token re_pre
                               re_code emspace enspace wordspace
-                              thinspace palt0 palt1 keep_global
-                              verbose ));
+                              thinspace palt0 palt1 paragraph
+                              keep_global verbose ));
 
 use utf8;
 use HTML::TreeBuilder;
@@ -117,19 +117,44 @@ sub arrange {
   local $FORMATTED = 0;
   local $TEXT = '';
 
+  # Make a space to store {en,word}space at the beginning of the line
+  # before calling arrange_spacing.
+  if ($self->paragraph) {
+    if (ref $html && ref $html->content && ref $html->content->[0]) {
+      $html->unshift_content("");
+    }
+  }
+
   $self->arrange_spacing($html);
+
+  # If there is a space at the beginning of the line that is separated
+  # from the japanese punctuation font, delete it.
+  if ($self->paragraph) {
+    if (ref $html && ref $html->content && !ref $html->content->[0]) {
+      $html->content->[0] =~ s/^\p{InSpaces}//;
+      $html->splice_content(0, 1) if $html->content->[0] eq '';
+    }
+  }
+
   $self->reduce_spacing($html);
 
   $self->restore_token($html);
 
   if (my $tag_attr = $self->output_tag) {
     my ($tag, @attr) = ref $tag_attr ? @$tag_attr : $tag_attr;
-    my $output = HTML::Element->new($tag, @attr);
-    if ($self->punct_spacing) {
-      $self->attr($output, %$_) for grep defined && ref, $self->palt1;
+    if ($tag eq '.') {
+      $html->attr(@attr);
+      if ($self->punct_spacing) {
+        $self->attr($html, %$_) for grep defined && ref, $self->palt1;
+      }
+    } elsif ($tag) {
+      my $output = HTML::Element->new($tag, @attr);
+      if ($self->punct_spacing) {
+        $self->attr($output, %$_) for grep defined && ref, $self->palt1;
+      }
+      $output->push_content($html->detach_content);
+      $html->push_content($output);
     }
-    $output->push_content($html->detach_content);
-    $html->push_content($output);
   }
 
   $html;
@@ -218,8 +243,14 @@ sub arrange_spacing {
           1 while s/($j)\s+($j)/$1$2/g;
 
           if ($self->lang_spacing) {
-            s/($j)($w)/$1._wordspace().$2/eg;
-            s/($w)($j)/$1._wordspace().$2/eg;
+            s{($j)($w)}{do {
+              my ($x, $p) = ($1, $2);
+              ($p =~ /\p{InEndingW}/)? $x.$p : $x._wordspace().$p;
+            }}eg;
+            s{($w)($j)}{do {
+              my ($p, $x) = ($1, $2);
+              ($p =~ /\p{InStartingW}/)? $p.$x : $p._wordspace().$x;
+            }}eg;
           }
 
           if ($self->number_spacing) {
@@ -233,21 +264,14 @@ sub arrange_spacing {
             s/(\p{InEndingJ})/$1._enspace()/eg;
             s/(\p{InMiddleDotsJ}+)/_wordspace().$1._wordspace()/eg;
 
-            # add wordspace when Western punctuation marks are used in
-            # Japanese sentences.
             s/(\p{InJapanese})(\p{InStartingW})/$1._wordspace().$2/eg;
             s/(\p{InEndingW})(\p{InJapanese})/$1._wordspace().$2/eg;
 
             s{\p{InSpaces}{2,}}{$self->preferred_space($&) // " "}ge;
 
-            # remove the wordspace (mechanically inserted) between the
-            # manpage name and its (section).
-            s/($w)\p{IsWordSpace}(\p{InStartingW})/$1$2/g;
-
             # 3.1.4
-            s/\p{InSpaces}+(\p{InEnding})/$1/g;
-            s/(\p{InStarting})\p{InSpaces}+/$1/g;
-
+            s/\p{InSpace2}(\p{InEndingJ})/$1/g;
+            s/(\p{InStartingJ})\p{InSpace2}/$1/g;
           }
 
           s/\p{InSpace2}+(\p{InNeutral})/$1/g;
@@ -267,8 +291,8 @@ sub arrange_spacing {
 
         if ($self->lang_spacing) {
           $leading .= _wordspace()
-            if $TEXT =~ /$j$/ && /^$w/
-            || $TEXT =~ /$w$/ && /^$j/;
+            if $TEXT =~ /$j$/ && /^$w/ && !/^\p{InEndingW}/
+            || $TEXT =~ /$w$/ && $TEXT !~ /\p{InStartingW}$/ && /^$j/;
         }
 
         if ($self->number_spacing) {
@@ -278,7 +302,8 @@ sub arrange_spacing {
         }
 
         if ($self->punct_spacing) {
-          $leading = ''
+          # avoid deleting the space entered by the user.
+          $leading =~ s/\p{InSpace2}//g
             if $TEXT =~ /\p{InStarting}$/ || /^\p{InEnding}/;
 
           $leading = $self->preferred_space($leading) // '';
@@ -351,17 +376,19 @@ sub reduce_spacing {
     } else {
 
       if ($self->punct_spacing > 0) {
-        my @list = split /\p{InSpaces}(\p{InMiddleDotsJ})\p{InSpaces}
-                        | \p{InSpaces}(\p{InStartingJ})
-                        | (\p{InEndingJ})\p{InSpaces}
-                         /x;
+        my @list = split /( \p{InSpaces}\p{InMiddleDotsJ}\p{InSpaces}
+                          | \p{InSpaces}\p{InStartingJ}
+                          | \p{InEndingJ}\p{InSpaces}
+                          )/x;
         while (@list) {
-          my ($chunk, $md, $ps, $pe) = splice @list, 0, 1 + 3;
+          my ($chunk, $punct) = splice @list, 0, 2;
           push @chunk, grep defined, $chunk;
-          if (my $c = $md // $ps // $pe) {
+          $punct //= '';
+          $punct =~ s/\p{InSpaces}//g;
+          if ($punct) {
             my $e = HTML::Element->new('span');
             $self->attr($e, %$_) for grep defined && ref, $self->palt0;
-            $e->push_content($c);
+            $e->push_content($punct);
             push @chunk, $e;
           }
         }
@@ -491,6 +518,7 @@ sub init {
   my $self = shift;
 
   my %default = (
+    paragraph => 1,
     output_tag => 'p',
     uri_ascii => 1,
     keep_global => 0,
@@ -1297,25 +1325,7 @@ L<cl-09|https://www.w3.org/TR/jlreq/#cl-09>です。
 
 =item InJapaneseCharacters
 
-$Config{privlib}/unicore/Blocks.txtからもってきました。
-
- 3000\t303F; CJK Symbols and Punctuation
- 3040\t309F; Hiragana
- 30A0\t30FF; Katakana
- 3190\t319F; Kanbun
- 31C0\t31EF; CJK Strokes
- 31F0\t31FF; Katakana Phonetic Extensions
- 3200\t32FF; Enclosed CJK Letters and Months
- 3300\t33FF; CJK Compatibility
- 3400\t4DBF; CJK Unified Ideographs Extension A
- 4DC0\t4DFF; Yijing Hexagram Symbols
- 4E00\t9FFF; CJK Unified Ideographs
- 20000\t2A6DF; CJK Unified Ideographs Extension B
- 2A700\t2B73F; CJK Unified Ideographs Extension C
- 2B740\t2B81F; CJK Unified Ideographs Extension D
- 2B820\t2CEAF; CJK Unified Ideographs Extension E
- 2CEB0\t2EBEF; CJK Unified Ideographs Extension F
- 2F800\t2FA1F; CJK Compatibility Ideographs Supplement
+すべての日本語の文字です。異字体のセレクタも含みます。
 
 =item InMiddleDots
 
@@ -1332,8 +1342,8 @@ L</InMiddleDots>のうち欧文のフォントに含まれるもの。
 
 =item InNeutral
 
-欧文の文字で、前後にスペースを追加しないもの。(入力されたスペースは除
-きます。)
+欧文の文字で日本語との境界にスペースを追加しないもの。
+(入力されたスペースは除きます。)
 
 =item InNumbers
 
@@ -1410,7 +1420,7 @@ C<AC00\tD7AF> (Hangul Syllables) を追加し、和文の中に안녕하세요�
 =item $PUA_free
 
 このモジュールで使用するPUA領域の始まりのアドレスです。
-デフォルトは0xF0000です。
+デフォルトは1000000です。
 
 =item %PUA
 

@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use feature 'say';
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 =encoding ja.UTF-8
 
@@ -270,8 +270,10 @@ sub arrange_spacing {
             s{\p{InSpaces}{2,}}{$self->preferred_space($&) // " "}ge;
 
             # 3.1.4
-            s/\p{InSpace2}(\p{InEndingJ})/$1/g;
-            s/(\p{InStartingJ})\p{InSpace2}/$1/g;
+            #s/\p{InSpace2}([\p{InEndingJ}\)])/$1/g;
+            #s/([\p{InStartingJ}\(])\p{InSpace2}/$1/g;
+            s/\p{InSpace2}(\p{InEnding})/$1/g;
+            s/(\p{InStarting})\p{InSpace2}/$1/g;
           }
 
           s/\p{InSpace2}+(\p{InNeutral})/$1/g;
@@ -376,9 +378,9 @@ sub reduce_spacing {
     } else {
 
       if ($self->punct_spacing > 0) {
-        my @list = split /( \p{InSpaces}\p{InMiddleDotsJ}\p{InSpaces}
-                          | \p{InSpaces}\p{InStartingJ}
-                          | \p{InEndingJ}\p{InSpaces}
+        my @list = split /( \p{InSpace2}\p{InMiddleDotsJ}\p{InSpace2}
+                          | \p{InSpace2}\p{InStartingJ}
+                          | \p{InEndingJ}\p{InSpace2}
                           )/x;
         while (@list) {
           my ($chunk, $punct) = splice @list, 0, 2;

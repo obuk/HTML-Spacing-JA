@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use feature 'say';
 
-our $VERSION = "0.03";
+our $VERSION = "0.04";
 
 =encoding ja.UTF-8
 
@@ -573,7 +573,7 @@ sub init {
 
 sub InSpaces {
   return <<END;
-+utf8::InSpace
++utf8::IsSpace
 +InSpace2
 END
 }
@@ -602,7 +602,7 @@ END
 sub InNumbers {
   return <<END;
 +InGroupedNumerals
--utf8::InSpace
+-utf8::IsSpace
 END
 }
 
@@ -612,8 +612,8 @@ sub InPunctuations {
 +InEnding
 +InHyphens
 +InMiddleDots
-+utf8::InP
-+utf8::InS
++utf8::IsP
++utf8::IsS
 END
 }
 
@@ -670,15 +670,15 @@ END
 
 sub InStarting {
   return <<END;
-+utf8::InPs
-+utf8::InPi
++utf8::IsPs
++utf8::IsPi
 END
 }
 
 sub InEnding {
   return <<END;
-+utf8::InPe
-+utf8::InPf
++utf8::IsPe
++utf8::IsPf
 +InColon
 +InFullStops
 +InCommas
@@ -1374,7 +1374,7 @@ L<cl-12|https://www.w3.org/TR/jlreq/#cl-12>です。
 
 =item InSpaces
 
-スペース類です。C<\s> (utf8::InSpace) と L</InSpace2> です。
+スペース類です。C<\s> (utf8::IsSpace) と L</InSpace2> です。
 
 =item InSpace2
 

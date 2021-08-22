@@ -1,6 +1,6 @@
 # NAME
 
-HTML::Spacing::JA - arrange spacing in japanese
+HTML::Spacing::JA - arrange spacing in ja text
 
 # SYNOPSIS
 
@@ -13,8 +13,8 @@ HTML::Spacing::JA - arrange spacing in japanese
 HTMLのテキスト(preやcodeを除く)のスペースを補正します。[日本語文章
 中、英単語の両端にスペースをつける人
 ](https://qiita.com/CodeOne/items/43d2b8e4247b020652b2)のような補正で
-す。それから括弧と句読点に含まれるスペースを補正します。
-font-feature-settingsを使うので、cssにotfを指定する必要があります。
+す。括弧と句読点に含まれるスペースも補正します。font-feature-settings
+を使うので、cssにotfを指定する必要があります。
 
     body {
       font-family: "Noto Sans CJK JP", sans-serif;
@@ -185,25 +185,7 @@ font-feature-settingsを使うので、cssにotfを指定する必要があり�
 
 - InJapaneseCharacters
 
-    $Config{privlib}/unicore/Blocks.txtからもってきました。
-
-        3000\t303F; CJK Symbols and Punctuation
-        3040\t309F; Hiragana
-        30A0\t30FF; Katakana
-        3190\t319F; Kanbun
-        31C0\t31EF; CJK Strokes
-        31F0\t31FF; Katakana Phonetic Extensions
-        3200\t32FF; Enclosed CJK Letters and Months
-        3300\t33FF; CJK Compatibility
-        3400\t4DBF; CJK Unified Ideographs Extension A
-        4DC0\t4DFF; Yijing Hexagram Symbols
-        4E00\t9FFF; CJK Unified Ideographs
-        20000\t2A6DF; CJK Unified Ideographs Extension B
-        2A700\t2B73F; CJK Unified Ideographs Extension C
-        2B740\t2B81F; CJK Unified Ideographs Extension D
-        2B820\t2CEAF; CJK Unified Ideographs Extension E
-        2CEB0\t2EBEF; CJK Unified Ideographs Extension F
-        2F800\t2FA1F; CJK Compatibility Ideographs Supplement
+    すべての日本語の文字です。異字体のセレクタも含みます。
 
 - InMiddleDots
 
@@ -217,6 +199,11 @@ font-feature-settingsを使うので、cssにotfを指定する必要があり�
 - InMiddleDotsW
 
     ["InMiddleDots"](#inmiddledots)のうち欧文のフォントに含まれるもの。
+
+- InNeutral
+
+    欧文の文字で日本語との境界にスペースを追加しないもの。
+    (入力されたスペースは除きます。)
 
 - InNumbers
 
@@ -245,7 +232,7 @@ font-feature-settingsを使うので、cssにotfを指定する必要があり�
 
 - InSpaces
 
-    スペース類です。`\s` (utf8::InSpace) と ["InSpace2"](#inspace2) です。
+    スペース類です。`\s` (utf8::IsSpace) と ["InSpace2"](#inspace2) です。
 
 - InSpace2
 
@@ -274,11 +261,6 @@ font-feature-settingsを使うので、cssにotfを指定する必要があり�
     `AC00\tD7AF` (Hangul Syllables) を追加し、和文の中に안녕하세요と書くと
     前後にスペースが付きます。
 
-- InWesternS
-
-    欧文の文字で、日本語と隣合うとき、間にスペースを要するもの。
-    いまのところ ["InWestern"](#inwestern) から `'` `"` `` ` `` を除いたもの。
-
 - IsEmSpace
 - IsEnSpace
 - IsThinSpace
@@ -291,7 +273,7 @@ font-feature-settingsを使うので、cssにotfを指定する必要があり�
 - $PUA\_free
 
     このモジュールで使用するPUA領域の始まりのアドレスです。
-    デフォルトは0xF0000です。
+    デフォルトは1000000です。
 
 - %PUA
 

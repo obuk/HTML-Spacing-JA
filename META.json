@@ -1,10 +1,10 @@
 {
-   "abstract" : "arrange spacing in japanese",
+   "abstract" : "arrange spacing in ja text",
    "author" : [
       "KUBO, Koichi <k@obuk.org>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Minilla/v3.1.11, CPAN::Meta::Converter version 2.150010",
+   "generated_by" : "Minilla/v3.1.12, CPAN::Meta::Converter version 2.150010",
    "license" : [
       "perl_5"
    ],
@@ -62,7 +62,18 @@
       }
    },
    "release_status" : "unstable",
-   "version" : "0.01",
-   "x_serialization_backend" : "JSON::PP version 4.02",
+   "resources" : {
+      "bugtracker" : {
+         "web" : "https://github.com/obuk/HTML-Spacing-JA/issues"
+      },
+      "homepage" : "https://github.com/obuk/HTML-Spacing-JA",
+      "repository" : {
+         "type" : "git",
+         "url" : "git://github.com/obuk/HTML-Spacing-JA.git",
+         "web" : "https://github.com/obuk/HTML-Spacing-JA"
+      }
+   },
+   "version" : "0.04",
+   "x_serialization_backend" : "JSON::PP version 4.04",
    "x_static_install" : 1
 }
